@@ -12,6 +12,11 @@
 #include <sys/wait.h>
 #include <stdbool.h>
 
+#include <unistd.h>
+
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+
 #define MINPORT 0
 #define MAXPORT 65535
 
@@ -20,6 +25,12 @@
 static ssh_session session;
 static ssh_bind sshbind;
 
+/* RSA keyfile generation */
+const int kBits = 1024;
+const int kExp = 3;
+
+int keylen;
+char *pem_key;
 
 /* Print usage information to `stream', exit with `exit_code'. */
 static void usage(FILE *stream, int exit_code) {
@@ -36,7 +47,7 @@ static void usage(FILE *stream, int exit_code) {
 	    "   -d  --daemon           Become a daemon.\n"
 	    "   -t  --delay <#>        Seconds to delay between auth attempts; default %ds.\n"
 	    "   -c  --chroot <dir>     Run in a chroot environment.\n"
-	    "   -b  --banner <banner>  SSH Banner; defaults to '%s'.\n", LISTENADDRESS, DEFAULTPORT, RSA_KEYFILE, LOGFILE, USER, GROUP, DELAY, BANNER ); 
+	    "   -b  --banner <banner>  SSH Banner; defaults to '%s'.\n", LISTENADDRESS, DEFAULTPORT, RSA_PRIV_KEYFILE, LOGFILE, USER, GROUP, DELAY, BANNER ); 
 
 
     exit(exit_code);
@@ -84,13 +95,58 @@ static void wrapup(void) {
     exit(0);
 }
 
+/* Function responsigle for RSA keyfile generation */
+bool generate_keyfile(char* rsa_keyfile)
+{
+    int             ret = 0;
+    RSA             *r = NULL;
+    BIGNUM          *bne = NULL;
+    BIO             *bp_public = NULL, *bp_private = NULL;
+ 
+    int             bits = 2048;
+    unsigned long   e = RSA_F4;
+ 
+    // 1. generate rsa key
+    bne = BN_new();
+    ret = BN_set_word(bne,e);
+    if(ret != 1){
+        goto free_all;
+    }
+ 
+    r = RSA_new();
+    ret = RSA_generate_key_ex(r, bits, bne, NULL);
+    if(ret != 1){
+        goto free_all;
+    }
+ 
+    // 2. save public key
+    bp_public = BIO_new_file(RSA_PUB_KEYFILE, "w+");
+    ret = PEM_write_bio_RSAPublicKey(bp_public, r);
+    if(ret != 1){
+        goto free_all;
+    }
+ 
+    // 3. save private key
+    bp_private = BIO_new_file(rsa_keyfile, "w+");
+    ret = PEM_write_bio_RSAPrivateKey(bp_private, r, NULL, NULL, 0, NULL, NULL);
+ 
+    // 4. free
+free_all:
+ 
+    BIO_free_all(bp_public);
+    BIO_free_all(bp_private);
+    RSA_free(r);
+    BN_free(bne);
+ 
+    return (ret == 1);
+}
 
 int main(int argc, char *argv[]) {
 
     int port = DEFAULTPORT;
     int delay = DELAY; 
 
-    char *rsa_keyfile = RSA_KEYFILE; 
+    char *rsa_keyfile = RSA_PRIV_KEYFILE;
     char *logfile = LOGFILE;
     char *user = USER; 
     char *group = GROUP; 
@@ -201,6 +257,16 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, (void(*)())wrapup);
 
     /* Create and configure the ssh session. */
+    /* Check whether RSA keyfile exists, otherwise create one */
+    
+    if( access( rsa_keyfile, F_OK ) == -1 ) {
+    /* RSA keyfile doesn't exist, let's create one */
+    	if (!generate_keyfile(rsa_keyfile)) {
+    		fprintf(stderr, "Error generation RSA keyfile\n");
+    		return -1;
+    	}
+    } 
+    
     session=ssh_new();
     sshbind=ssh_bind_new();
     ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BINDADDR, listen);

@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -I/usr/local/include
 CHMOD := $(shell which chmod)
 SETCAP := $(shell which setcap)
 USER := $(shell whoami)
@@ -7,7 +7,7 @@ USER := $(shell whoami)
 all: sshpot
 
 sshpot: main.o auth.o
-	$(CC) $(CFLAGS) $^ -lssh -o $@
+	$(CC) $(CFLAGS) $^ -lssh -lssl -lcrypto  -o $@
 
 main.o: main.c config.h
 	$(CC) $(CFLAGS) -c main.c

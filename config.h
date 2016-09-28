@@ -1,11 +1,16 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#ifdef __APPLE__
+#include <sys/syslog.h>
+#else
 #include <syslog.h>
+#endif
 
 #define LISTENADDRESS   "0.0.0.0"
 #define DEFAULTPORT     22
-#define RSA_KEYFILE     "./sshpot.rsa.key"
+#define RSA_PRIV_KEYFILE     "./sshpot.rsa.pem"
+#define RSA_PUB_KEYFILE     "./sshpot.rsa.pub"
 #define LOGFILE         "sshpot_auth.log"
 #define DEBUG		0
 

@@ -19,5 +19,6 @@ int handle_auth(ssh_session session, const char *logfile, bool syslog, int delay
 	const char *jsonlog, const char *sensor);
 void drop_priv(const char *user, const char *group); 
 void sshpot_chroot (const char *chrootdir);
+void init_session_uuid();
 
 #endif

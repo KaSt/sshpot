@@ -157,6 +157,9 @@ int main(int argc, char *argv[]) {
     const char *jsonlog = JSON_SSH_LOG;
     const char *sensor = SENSOR;
     const char *chroot = NULL; 
+    
+    /* Init the session id */
+    init_session_uuid();
 
 	/* Parse configuration file if present */
 	/* Command line parameters override configuration file */

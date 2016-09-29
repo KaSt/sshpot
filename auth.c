@@ -19,6 +19,8 @@
 #include <json-c/json.h>
 #include "uuid4.h"
 
+char uuid[UUID4_LEN];
+
 /* Stores the current UTC time. Returns 0 on error. */
 static int get_utc(struct connection *c) {
     time_t t;
@@ -38,6 +40,11 @@ static int *get_client_ip(struct connection *c) {
     inet_ntop(AF_INET, &sock->sin_addr, c->client_ip, len);
 
     return 0;
+}
+
+/* Generated a fresh UUID for this run */
+void init_session_uuid() {
+	uuid4_generate(uuid);
 }
 
 /* Write interesting information about a connection attempt to  LOGFILE. 
@@ -102,9 +109,7 @@ static int log_attempt(struct connection *c, const char *logfile, const char *js
     /* Source IP */
     json_object *jip = json_object_new_string(c->client_ip);
     json_object_object_add(jobj,"src_ip", jip);
-    /* Session - Fresh UUID */
-    char uuid[UUID4_LEN];
-	uuid4_generate(uuid);
+    /* Session - UUID */
     json_object *jsession = json_object_new_string(uuid);
     json_object_object_add(jobj,"session", jsession);
     /* Password */

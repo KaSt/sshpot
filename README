@@ -7,20 +7,26 @@ Description:
 
     An ssh server that never authenticates. Instead, it logs the username,
     password, IP address and time of every login attempt.
+    
+    There are more complex honeypots around, ones that allow medium interaction and even
+    quasi full interaction with a system only there to grasp what the attacker is planning
+    to do. This one is barely meant to draw a list of offending IPs. What you do with them
+    is up to you. I plan on adding the possibility to automatically submit them to online
+    blacklists and such, blocking them at firewall level, making sure they can't even
+    try to connect again.
 
 
 Installation:
 
     1. Generate an RSA public key for use by the server:
         > ssh-keygen -t rsa 
+        In case you don't, one will be generated automatically for you.
 
-    2. Edit config.h to set the desired options. In particular, you must set
-       RSA_KEYFILE to the path to the public key generated in step one. LOGFILE 
-       must be set to a location where the user running sshpot can write.
-
-    3. Compile the software:
+    2. Compile the software:
         > make
-        # make install (optional, but necessary to listen on ports < 1024.)
+    
+    3. Run it 
+    	> ./sshpot
 
 
 Usage:
@@ -29,7 +35,7 @@ Usage:
 
         -h  --help             Display this usage information.
         -l  --listen {addr}    Listen address; defaults to 0.0.0.0.
-        -p  --port <port>      Port to listen on; defaults to 22.
+        -p  --port <port>      Port to listen on; defaults to 2222.
         -r  --rsa <file>       RSA Key file; defaults to ./sshpot.rsa.key.
         -L  --logfile <file>   Output log file; defaults to sshpot_auth.log
         -s  --syslog           Log output to syslog.
@@ -39,7 +45,30 @@ Usage:
         -t  --delay <#>        Seconds to delay between auth attempts; default 2s.
         -c  --chroot <dir>     Run in a chroot environment.
         -b  --banner <banner>  SSH Banner; defaults to 'OpenSSH_6.7p1 Debian-5+deb8u3'.
+	    -j  --json <jsonfile> JSON Cowrie compatible log; defaults to 'sshpot.json'.
+	    -e  --sensor <sensor_name> Sensor name (JSON log); defaults to 'sshpot'. 
 
+Instead of typing command line parameters, you can also use a config file. 
+Please see config.json.dist. Copy it to config.json and edit it as you like.     
+
+
+Logging:
+
+	When a login attempt is performed by an attacker, two logs are updated:
+
+	1. sshpot.log contains a plain list. Example:  
+		Timestamp            IP        User Password
+		2016-09-29T18:08:01Z 127.0.0.1 root pass
+		
+	2. sshpot.json is a json version of the above, ready to be fed to Elasticsearch,
+	   Logstash, Kibana, exactly like you can do with Cowrie 
+	   										(https://github.com/micheloosterhof/cowrie)
+	   
+	   
 Dependencies:
 
-    libssh http://www.libssh.org/
+    1. libssh (http://www.libssh.org/)
+    
+    2. json-c (https://github.com/json-c/json-c) You need a recent version of it as the one
+       shipped with most package managers is old and doesn't have some options that sshpot
+       needs. I recommend building it yourself instead of using the distro default.

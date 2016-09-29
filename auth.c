@@ -88,9 +88,9 @@ static int log_attempt(struct connection *c, const char *logfile, const char *js
     json_object *timestap = json_object_new_string(c->con_time);
     json_object_object_add(jobj,"timestamp", timestap);
     /* Message */
-    size_t needed = snprintf(NULL, 0, "login attempt '[%s/%s]'", c->user, c->pass)+1;
+    size_t needed = snprintf(NULL, 0, "login attempt [%s/%s]", c->user, c->pass)+1;
     char* message = malloc(needed);
-    snprintf(message, needed, "login attempt '[%s/%s]'", c->user, c->pass);
+    snprintf(message, needed, "login attempt [%s/%s]", c->user, c->pass);
     json_object *jmessage = json_object_new_string(message);
     json_object_object_add(jobj,"message", jmessage);
     /* System */
@@ -116,6 +116,7 @@ static int log_attempt(struct connection *c, const char *logfile, const char *js
     FILE *fo = fopen(jsonlog, "a");
     if (fo != NULL) {
 	    	fprintf(fo, json_object_to_json_string_ext(jobj, JSON_C_TO_STRING_NOSLASHESCAPE));
+	    	fprintf(fo,"\n");
     	fclose(fo);
 	} else {
 		fprintf(stderr, "Couldn't write to JSON log file\n");

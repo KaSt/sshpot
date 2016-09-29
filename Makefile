@@ -6,13 +6,13 @@ USER := $(shell whoami)
 
 all: sshpot
 
-sshpot: main.o auth.o
-	$(CC) $(CFLAGS) $^ -lssh -lssl -lcrypto  -o $@
+sshpot: main.o auth.o uuid4.o
+	$(CC) $(CFLAGS) $^ -lssh -lssl -lcrypto -ljson-c -o $@
 
 main.o: main.c config.h
 	$(CC) $(CFLAGS) -c main.c
 
-auth.o: auth.c auth.h config.h
+auth.o: auth.c uuid4.c auth.h config.h
 	$(CC) $(CFLAGS) -c auth.c
 
 install:

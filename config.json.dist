@@ -1,0 +1,8 @@
+{
+	"listenaddress": "0.0.0.0",
+	"port": 2222,
+	"keyfile": "sshpot.rsa.pem",
+	"logfile": "sshpot.log",
+	"jsonlogfile": "sshpot.json",
+	"sensor": "sshpot"
+}

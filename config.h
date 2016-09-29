@@ -12,7 +12,16 @@
 #define RSA_PRIV_KEYFILE     "./sshpot.rsa.pem"
 #define RSA_PUB_KEYFILE     "./sshpot.rsa.pub"
 #define LOGFILE         "sshpot_auth.log"
+#define JSON_SSH_LOG    "sshpot.json"
+#define SENSOR			"sshpot"
 #define DEBUG		0
+#define CONFIG_FILE		"config.json"
+#define CONFIG_LISTENADDRESS "listenaddress"
+#define CONFIG_PORT	"port"
+#define CONFIG_RSA_PRIV_KEYFILE	"keyfile"
+#define CONFIG_LOGFILE "logfile"
+#define CONFIG_JSONLOG "jsonlogfile"
+#define CONFIG_SENSOR	"sensor"
 
 #define	USER		"nobody"
 #define GROUP		"nogroup"

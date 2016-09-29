@@ -11,12 +11,13 @@ struct connection {
     ssh_message message;
     char client_ip[MAXBUF];
     char con_time[MAXBUF];
-    char *user;
-    char *pass;
+    const char *user;
+    const char *pass;
 };
 
-int handle_auth(ssh_session session, char *logfile, bool syslog, int delay);
-void drop_priv(char *user, char *group); 
+int handle_auth(ssh_session session, const char *logfile, bool syslog, int delay, 
+	const char *jsonlog, const char *sensor);
+void drop_priv(const char *user, const char *group); 
 void sshpot_chroot (const char *chrootdir);
 
 #endif

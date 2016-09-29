@@ -17,6 +17,8 @@
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
 
+#include <json-c/json.h>
+
 #define MINPORT 0
 #define MAXPORT 65535
 
@@ -29,25 +31,26 @@ static ssh_bind sshbind;
 const int kBits = 1024;
 const int kExp = 3;
 
-int keylen;
-char *pem_key;
-
 /* Print usage information to `stream', exit with `exit_code'. */
 static void usage(FILE *stream, int exit_code) {
     fprintf(stream, "Usage: sshpot [-h]\n");
     fprintf(stream,
-            "   -h  --help             Display this usage information.\n"
+        "   -h  --help             Display this usage information.\n"
 	    "   -l  --listen {addr}    Listen address; defaults to %s.\n"
-            "   -p  --port <port>      Port to listen on; defaults to %d.\n"
-            "   -r  --rsa <file>       RSA Key file; defaults to %s.\n" 
-            "   -L  --logfile <file>   Output log file; defaults to %s\n"
+        "   -p  --port <port>      Port to listen on; defaults to %d.\n"
+        "   -r  --rsa <file>       RSA Key file; defaults to %s.\n" 
+        "   -L  --logfile <file>   Output log file; defaults to %s\n"
 	    "   -s  --syslog           Log output to syslog.\n"
 	    "   -u  --user <username>  Username to drop privs to; defaults to '%s'.\n"
 	    "   -g  --group <group>    Group to drop privs to; defaults to '%s'.\n"
 	    "   -d  --daemon           Become a daemon.\n"
 	    "   -t  --delay <#>        Seconds to delay between auth attempts; default %ds.\n"
 	    "   -c  --chroot <dir>     Run in a chroot environment.\n"
-	    "   -b  --banner <banner>  SSH Banner; defaults to '%s'.\n", LISTENADDRESS, DEFAULTPORT, RSA_PRIV_KEYFILE, LOGFILE, USER, GROUP, DELAY, BANNER ); 
+	    "   -b  --banner <banner>  SSH Banner; defaults to '%s'.\n"
+	    "   -j  --json <jsonfile> JSON Cowrie compatible log; defaults to '%s'.\n"
+	    "   -e  --sensor <sensor_name> Sensor name (JSON log); defaults to '%s'.\n", 
+	    	LISTENADDRESS, DEFAULTPORT, RSA_PRIV_KEYFILE, LOGFILE, USER, GROUP, DELAY, 
+	    		BANNER, JSON_SSH_LOG, SENSOR ); 
 
 
     exit(exit_code);
@@ -96,13 +99,12 @@ static void wrapup(void) {
 }
 
 /* Function responsigle for RSA keyfile generation */
-bool generate_keyfile(char* rsa_keyfile)
+bool generate_keyfile(const char* rsa_keyfile)
 {
     int             ret = 0;
     RSA             *r = NULL;
     BIGNUM          *bne = NULL;
     BIO             *bp_public = NULL, *bp_private = NULL;
- 
     int             bits = 2048;
     unsigned long   e = RSA_F4;
  
@@ -146,14 +148,66 @@ int main(int argc, char *argv[]) {
     int port = DEFAULTPORT;
     int delay = DELAY; 
 
-    char *rsa_keyfile = RSA_PRIV_KEYFILE;
-    char *logfile = LOGFILE;
-    char *user = USER; 
-    char *group = GROUP; 
-    char *listen = LISTENADDRESS; 
-    char *banner = BANNER; 
+    const char *rsa_keyfile = RSA_PRIV_KEYFILE;
+    const char *logfile = LOGFILE;
+    const char *user = USER; 
+    const char *group = GROUP; 
+    const char *listen = LISTENADDRESS; 
+    const char *banner = BANNER; 
+    const char *jsonlog = JSON_SSH_LOG;
+    const char *sensor = SENSOR;
+    const char *chroot = NULL; 
 
-    char *chroot = NULL; 
+	/* Parse configuration file if present */
+	/* Command line parameters override configuration file */
+	char * buffer = 0;
+	long length;
+	FILE * f = fopen (CONFIG_FILE, "rb");
+	if (f) {
+  		fseek (f, 0, SEEK_END);
+  		length = ftell (f);
+  		fseek (f, 0, SEEK_SET);
+  		buffer = malloc (length);
+  		if (buffer) {
+    		fread (buffer, 1, length, f);
+  		}
+  		fclose (f);
+	}
+
+	if (buffer) {
+  		/* Parse JSON Config file */
+  		json_object * jobj = json_tokener_parse(buffer);
+  		/* Listenaddress */
+  		json_object* jlistenaddress = json_object_object_get(jobj, CONFIG_LISTENADDRESS);
+  		if (jlistenaddress) {
+  			listen = json_object_get_string(jlistenaddress);
+  		}
+  		/* Port */
+  		json_object* jport = json_object_object_get(jobj, CONFIG_PORT);
+  		if (jport) {
+  			port = json_object_get_int(jport);
+  		}
+  		/* RSA Keyfile */
+  		json_object* jrsa_keyfile = json_object_object_get(jobj, CONFIG_RSA_PRIV_KEYFILE);
+  		if (jrsa_keyfile) {
+  			rsa_keyfile = json_object_get_string(jrsa_keyfile);
+  		}
+  		/* Logfile */
+  		json_object* jlogfile = json_object_object_get(jobj, CONFIG_LOGFILE);
+  		if (jlogfile) {
+  			logfile = json_object_get_string(jlogfile);
+  		}
+  		/* JSON Logfile */
+  		json_object* jjsonlogfile = json_object_object_get(jobj, CONFIG_JSONLOG);
+  		if (jjsonlogfile) {
+  			jsonlog = json_object_get_string(jjsonlogfile);
+  		}
+  		/* Sensor */
+  		json_object* jsensor = json_object_object_get(jobj, CONFIG_SENSOR);
+  		if (jsensor) {
+  			sensor = json_object_get_string(jsensor);
+  		}			  		
+	}
 
     bool syslog_bool = 0; 
     bool chroot_bool = 0; 
@@ -161,20 +215,22 @@ int main(int argc, char *argv[]) {
 
     /* Handle command line options. */
     int next_opt = 0;
-    const char *short_opts = "b:c:g:u:l:L:r:p:hsd";
+    const char *short_opts = "b:c:g:u:l:L:r:p:hsd:j:e";
     const struct option long_opts[] = {
         { "help",    no_argument, NULL, 'h' },
-	{ "daemon",  no_argument, NULL, 'd' }, 
-        { "port",    required_argument, NULL, 'p' },
-        { "rsa",     required_argument, NULL, 'r' }, 
-        { "logfile", required_argument, NULL, 'L' }, 
-        { "syslog",  required_argument, NULL, 's' }, 
-	{ "user",    required_argument, NULL, 'u' }, 
-	{ "group",   required_argument, NULL, 'g' }, 
-	{ "delay",   required_argument, NULL, 't' }, 
-	{ "chroot",  required_argument, NULL, 'c' }, 
-	{ "listen",  required_argument, NULL, 'l' }, 
-        { "banner",  required_argument, NULL, 'b' }, 
+		{ "daemon",  no_argument, NULL, 'd' }, 
+    	{ "port",    required_argument, NULL, 'p' },
+    	{ "rsa",     required_argument, NULL, 'r' }, 
+    	{ "logfile", required_argument, NULL, 'L' }, 
+    	{ "syslog",  required_argument, NULL, 's' }, 
+		{ "user",    required_argument, NULL, 'u' }, 
+		{ "group",   required_argument, NULL, 'g' }, 
+		{ "delay",   required_argument, NULL, 't' }, 
+		{ "chroot",  required_argument, NULL, 'c' }, 
+		{ "listen",  required_argument, NULL, 'l' }, 
+    	{ "banner",  required_argument, NULL, 'b' },
+    	{ "json",  	 required_argument, NULL, 'j' },
+    	{ "sensor",  required_argument, NULL, 'e' }, 
         { NULL,      0, NULL, 0   }
     };
 
@@ -323,7 +379,7 @@ int main(int argc, char *argv[]) {
                 exit(-1);
 
             case 0:
-                exit(handle_auth(session, logfile, syslog_bool, delay));
+                exit(handle_auth(session, logfile, syslog_bool, delay, jsonlog, sensor));
 
             default:
                 break;

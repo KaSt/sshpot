@@ -5,7 +5,10 @@
 *.pub
 *.pem
 *.dSym
+*.json
 
 rfc.txt
 libssh*
 sshpot
+config.json
+

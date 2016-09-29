@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
     int port = DEFAULTPORT;
     int delay = DELAY; 
 
-    const char *rsa_keyfile = RSA_PRIV_KEYFILE;
+    const char *rsa_keyfile = RSA_PUB_KEYFILE;
     const char *logfile = LOGFILE;
     const char *user = USER; 
     const char *group = GROUP; 

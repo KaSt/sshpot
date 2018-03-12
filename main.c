@@ -19,17 +19,21 @@
 
 #include <json-c/json.h>
 
+#include "stats.h"
+
 #define MINPORT 0
 #define MAXPORT 65535
-
 
 /* Global so they can be cleaned up at SIGINT. */
 static ssh_session session;
 static ssh_bind sshbind;
 
-/* RSA keyfile generation */
-const int kBits = 1024;
-const int kExp = 3;
+/* Global stats */
+stats_t *stats;
+
+static const unsigned long BUILD_DATE   = __BUILD_DATE;
+static const unsigned long BUILD_NUMBER = __BUILD_NUMBER;
+
 
 /* Print usage information to `stream', exit with `exit_code'. */
 static void usage(FILE *stream, int exit_code) {
@@ -143,6 +147,61 @@ free_all:
     return (ret == 1);
 }
 
+void init_stats(stats_t *stats) {
+	printf("Allocating memory for iphead\n");
+	stats->iphead = NULL;
+	stats->iphead = malloc(sizeof(ip_t));
+	if (stats->iphead == NULL) {
+		fprintf(stderr, "Couldn't allocate mem for iphead\n");
+		return;
+	}
+	printf("Init iphead\n");
+	stats->iphead->clientip = NULL;
+	stats->iphead->ipcount = 0;
+	stats->iphead->next = NULL;
+	stats->ipcurrent = stats->iphead;
+
+	stats->userhead = NULL;
+	stats->userhead = malloc(sizeof(user_t));
+	if (stats->userhead == NULL) {
+		fprintf(stderr, "Couldn't allocate mem for userhead\n");
+		return;
+	}
+	printf("Init userhead\n");
+	stats->userhead->userid = NULL;
+	stats->userhead->usercount = 0;
+	stats->userhead->next = NULL;
+	stats->usercurrent = stats->userhead;
+
+	stats->passhead = NULL;
+	stats->passhead = malloc(sizeof(pass_t));
+	if (stats->passhead == NULL) {
+		fprintf(stderr, "Couldn't allocate mem for passhead\n");
+		return;
+	}
+	printf("Init passhead\n");
+	stats->passhead->pass = NULL;
+	stats->passhead->passcount = 0;
+	stats->passhead->next = NULL;
+	stats->passcurrent = stats->passhead;
+
+	stats->combinationhead = NULL;
+	stats->combinationhead = malloc(sizeof(combination_t));
+	if (stats->combinationhead == NULL) {
+		fprintf(stderr, "Couldn't allocate mem for combinationhead\n");
+		return;
+	}
+	printf("Init conbinationhead\n");
+	stats->combinationhead->combination = NULL;
+	stats->combinationhead->combinationcount = 0;
+	stats->combinationhead->next = NULL;
+	stats->combinationcurrent = stats->combinationhead;
+
+	printf("Init done\n");
+	return;
+
+}
+
 int main(int argc, char *argv[]) {
 
     int port = DEFAULTPORT;
@@ -158,8 +217,26 @@ int main(int argc, char *argv[]) {
     const char *sensor = SENSOR;
     const char *chroot = NULL; 
     
+    printf("SSHPot %s\n", APP_VERSION);
+    printf("Build date: %u ", (unsigned long) __BUILD_DATE);
+    printf("Build number: %u\n", (unsigned long) __BUILD_NUMBER);
+
     /* Init the session id */
     init_session_uuid();
+    
+    /* Init session stats */
+	stats = NULL;
+	stats = malloc(sizeof(stats_t));
+	if (stats == NULL ) {
+		printf("Couldn't allocate mem for stats\n");
+		return -1;
+	}
+
+
+    init_stats(stats);
+    if (stats == NULL) {
+    	printf("Something went wrong initialising the stats \n");
+    }
 
 	/* Parse configuration file if present */
 	/* Command line parameters override configuration file */
@@ -379,10 +456,12 @@ int main(int argc, char *argv[]) {
         switch (fork())  {
             case -1:
                 fprintf(stderr,"Fork returned error: `%d'.\n",-1);
-                exit(-1);
+                exit(NULL);
 
             case 0:
-                exit(handle_auth(session, logfile, syslog_bool, delay, jsonlog, sensor));
+                handle_auth(session, logfile, syslog_bool, delay, jsonlog, sensor,
+                	stats);
+                exit(0);
 
             default:
                 break;

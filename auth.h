@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <libssh/libssh.h>
+#include "stats.h"
 
 #define MAXBUF 100
 
@@ -15,8 +16,8 @@ struct connection {
     const char *pass;
 };
 
-int handle_auth(ssh_session session, const char *logfile, bool syslog, int delay, 
-	const char *jsonlog, const char *sensor);
+void handle_auth(ssh_session session, const char *logfile, bool syslog, int delay,
+	const char *jsonlog, const char *sensor, stats_t *stats );
 void drop_priv(const char *user, const char *group); 
 void sshpot_chroot (const char *chrootdir);
 void init_session_uuid();

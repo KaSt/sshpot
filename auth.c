@@ -21,6 +21,8 @@
 
 char uuid[UUID4_LEN];
 
+stats_t *stats;
+
 /* Stores the current UTC time. Returns 0 on error. */
 static int get_utc(struct connection *c) {
     time_t t;
@@ -50,24 +52,24 @@ void init_session_uuid() {
 /* Write interesting information about a connection attempt to  LOGFILE. 
  * Returns -1 on error. */
  
-static int log_attempt(struct connection *c, const char *logfile, const char *jsonlog, 
-	bool syslog_bool, const char *sensor) {
+void log_attempt(struct connection *c, const char *logfile, const char *jsonlog,
+	bool syslog_bool, const char *sensor, stats_t *stats) {
     FILE *f;
     int r;
 
     if ((f = fopen(logfile, "a+")) == NULL) {
         fprintf(stderr, "Unable to open %s\n", LOGFILE);
-        return -1;
+        return;
     }
 
     if (get_utc(c) <= 0) {
         fprintf(stderr, "Error getting time\n");
-        return -1;
+        return;
     }
 
     if (get_client_ip(c) < 0) {
         fprintf(stderr, "Error getting client ip\n");
-        return -1;
+        return;
     }
 
     c->user = ssh_message_auth_user(c->message);
@@ -125,21 +127,28 @@ static int log_attempt(struct connection *c, const char *logfile, const char *js
     	fclose(fo);
 	} else {
 		fprintf(stderr, "Couldn't write to JSON log file\n");
-		return -1;	
+		return;
 	}
-    return r;
+	
+	update_stats(stats, c->client_ip, c->user, c->pass);
+	stats->attackcount++;
+	if (stats->attackcount % 5 == 0) {
+		write_stats(stats);
+	}
+	
+    return;
 }
 
 /* Logs password auth attempts. Always replies with SSH_MESSAGE_USERAUTH_FAILURE. */
-int handle_auth(ssh_session session, const char *logfile, bool syslog_bool, int delay, 
-	const char *jsonlog, const char *sensor) {
+void handle_auth(ssh_session session, const char *logfile, bool syslog_bool, int delay,
+	const char *jsonlog, const char *sensor, stats_t *stats) {
     struct connection con;
     con.session = session;
 
     /* Perform key exchange. */
     if (ssh_handle_key_exchange(con.session)) {
         fprintf(stderr, "Error exchanging keys: `%s'.\n", ssh_get_error(con.session));
-        return -1;
+        return;
     }
     if (DEBUG) { 
     	printf("Successful key exchange.\n"); 
@@ -154,7 +163,7 @@ int handle_auth(ssh_session session, const char *logfile, bool syslog_bool, int 
 
         /* Log the authentication request and disconnect. */
         if (ssh_message_subtype(con.message) == SSH_AUTH_METHOD_PASSWORD) {
-        	log_attempt(&con, logfile, jsonlog, syslog_bool, sensor);
+        	log_attempt(&con, logfile, jsonlog, syslog_bool, sensor, stats);
 			sleep(delay);
 			
 			 
@@ -169,7 +178,7 @@ int handle_auth(ssh_session session, const char *logfile, bool syslog_bool, int 
     }
 
     if (DEBUG) { printf("Exiting child.\n"); }
-    return 0;
+    return;
 }
 
 

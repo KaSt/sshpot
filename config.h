@@ -7,6 +7,7 @@
 #include <syslog.h>
 #endif
 
+#define APP_VERSION "0.1 Alpha"
 #define LISTENADDRESS   "0.0.0.0"
 #define DEFAULTPORT     22
 #define RSA_PRIV_KEYFILE     "./sshpot.rsa.pem"

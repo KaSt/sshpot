@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall -I/usr/local/include
+CFLAGS = -g -Werror -I/usr/local/include
 CHMOD := $(shell which chmod)
 SETCAP := $(shell which setcap)
 USER := $(shell whoami)

@@ -23,7 +23,7 @@ all: sshpot
 
 sshpot: main.o auth.o uuid4.o stats.o 
 	@echo Building SSHPot N: $$(cat $(BUILD_NUMBER_FILE)) on $$(date +'%Y%m%d')
-	$(CC) $(CFLAGS) $(BUILD_NUMBER_LDFLAGS) $^ -lssh -lssl -lcrypto -ljson-c  $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $(BUILD_NUMBER_LDFLAGS) $^ -lssh -lssl -lcrypto -ljson-c  -lz $(LDFLAGS) -o $@
 
 main.o: main.c config.h
 	$(CC) $(CFLAGS) $(BUILD_NUMBER_LDFLAGS) -c main.c

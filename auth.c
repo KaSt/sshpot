@@ -77,7 +77,7 @@ void log_attempt(struct connection *c, const char *logfile, const char *jsonlog,
 
     if ( syslog_bool ) {
 	openlog("sshpot",SYSLOG_PRIORITY, SYSLOG_FACILITY);
-	syslog(LOG_PID, "Login attempt from %s,  username %s, password %s", c->client_ip, c->user, c->pass); 	
+	syslog(LOG_PID, "[SSHService 'ssh-userauth' on HoneyPotSSHTransport,78367,%s] login attempt [%s/%s] succeeded", c->client_ip, c->user, c->pass); 	
 	closelog(); 
 	}
 

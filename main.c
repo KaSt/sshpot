@@ -112,6 +112,7 @@ bool generate_keyfile(const char* rsa_keyfile)
     int             bits = 2048;
     unsigned long   e = RSA_F4;
  
+    printf("RSA Priv Key file %s\n", rsa_keyfile);
     // 1. generate rsa key
     bne = BN_new();
     ret = BN_set_word(bne,e);
@@ -207,7 +208,7 @@ int main(int argc, char *argv[]) {
     int port = DEFAULTPORT;
     int delay = DELAY; 
 
-    const char *rsa_keyfile = RSA_PUB_KEYFILE;
+    const char *rsa_keyfile = RSA_PRIV_KEYFILE;
     const char *logfile = LOGFILE;
     const char *user = USER; 
     const char *group = GROUP; 

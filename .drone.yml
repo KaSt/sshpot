@@ -7,4 +7,5 @@ steps:
   commands:
   - apt-get update
   - apt-get install libssl-dev libssh-dev libjson-c-dev -y
+  - echo 0 > build-number.txt 
   - make

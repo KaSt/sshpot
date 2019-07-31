@@ -5,4 +5,5 @@ steps:
 - name: build
   image: gcc
   commands:
+  - apt-get install libssl-dev
   - make

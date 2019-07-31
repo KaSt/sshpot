@@ -6,6 +6,7 @@ steps:
   image: gcc
   commands:
   - apt-get update
-  - apt-get install libssl-dev libssh-dev libjson-c-dev -y
+  - apt-get install libssl-dev libssh-dev libjson-c-dev libtool -y
+  - git clone https://github.com/json-c/json-c.git && cd json-c && sh autogen.sh && ./configure && make && make install
   - echo 0 > build-number.txt 
   - make

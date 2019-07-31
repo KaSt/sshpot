@@ -1,0 +1,8 @@
+kind: pipeline
+name: sshpot
+
+steps:
+- name: build
+  image: gcc
+  commands:
+  - make
